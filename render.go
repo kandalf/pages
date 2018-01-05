@@ -2,10 +2,12 @@ package pages
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
 	"io/ioutil"
+	"net/http"
 	"path/filepath"
 	"strings"
 )
@@ -22,6 +24,13 @@ type Renderer struct {
 	rightDelimiter string
 	viewsDir       string
 	scripts        []string
+}
+
+type JSONResponse struct {
+	Body       interface{}
+	Headers    map[string]string
+	Status     int
+	StatusText string
 }
 
 type layoutContent struct {
@@ -111,4 +120,16 @@ func (r *Renderer) Render(writer io.Writer, page Page, tplDir string) error {
 	err = templates.ExecuteTemplate(writer, "application.html", content)
 
 	return err
+}
+
+func (r *Renderer) RenderJSON(writer http.ResponseWriter, response *JSONResponse) error {
+	for h, v := range response.Headers {
+		writer.Header().Set(h, v)
+	}
+
+	writer.Header().Set("Content-Type", "application/json")
+
+	writer.WriteHeader(http.StatusOK)
+
+	return json.NewEncoder(writer).Encode(response.Body)
 }
